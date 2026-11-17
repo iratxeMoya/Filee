@@ -8,6 +8,7 @@
     <Project Path="src/Filee.App/Filee.App.csproj" />
     <Project Path="src/Filee.Cli/Filee.Cli.csproj" />
     <Project Path="src/Filee.Setup/Filee.Setup.csproj" />
+    <Project Path="src/Filee.Web/Filee.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Filee.Core.Tests/Filee.Core.Tests.csproj" />
