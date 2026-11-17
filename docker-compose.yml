@@ -1,0 +1,40 @@
+# Filee in a browser: docker compose up -d --build  →  http://localhost:8080
+# Settings are environment variables (FILEE_WEB_*, see src/Filee.Web/WebOptions.cs); engines are build arguments
+# (see the Dockerfile).
+
+services:
+  filee:
+    build:
+      context: .
+      args:
+        ENGINES: "ffmpeg pandoc"
+        WITH_GHOSTSCRIPT: "true"
+        WITH_LIBREOFFICE: "false"
+        WITH_TESSERACT: "false"
+    image: filee-web:local
+    ports:
+      # Only this computer by default; use "8080:8080" to reach it from the local network (and set FILEE_WEB_TOKEN).
+      - "127.0.0.1:${FILEE_PORT:-8080}:8080"
+    environment:
+      FILEE_WEB_MAX_UPLOAD_MB: "500"
+      FILEE_WEB_MAX_FILES: "50"
+      FILEE_WEB_MAX_CONCURRENT_JOBS: "2"
+      FILEE_WEB_JOB_TTL_MINUTES: "60"
+      FILEE_WEB_JOB_TIMEOUT_MINUTES: "30"
+      FILEE_WEB_TOKEN: "${FILEE_WEB_TOKEN:-}"
+    volumes:
+      - filee-data:/data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    cpus: 2
+    pids_limit: 512
+    restart: unless-stopped
+
+volumes:
+  filee-data:

@@ -130,87 +130,21 @@ Principios:
 
 ### Fase 3 — Dockerización (1–2 días)
 
-1. **`.dockerignore`** en la raíz: `**/bin`, `**/obj`, `.git`, `engines/`, `build/.cache`, `docs/media`, `tests/**/TestResults`.
+> ✅ **Hecho** (rama `feat/web-docker`). Lo implementado difiere del borrador inicial en dos puntos: los motores opcionales se meten **en la imagen** al construirla (no se descargan al arrancar, así que no hay `docker/entrypoint.sh`) y el healthcheck usa `curl`, instalado en la imagen.
 
-2. **`Dockerfile`** (multi-stage, en la raíz del repo):
+1. **[.dockerignore](../.dockerignore)**: solo entra `src/`, los `Directory.*.props`, `global.json` y `build/fetch-portable-engines.ps1`. Fuera `bin/`, `obj/`, `.git`, `docs/`, `tests/`, `installer/` y las cachés de motores.
 
-   ```dockerfile
-   # ---------- build ----------
-   FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-   WORKDIR /src
-   COPY . .
-   RUN dotnet publish src/Filee.Web -c Release -r linux-x64 --self-contained false -o /app
-   # El CLI, solo para instalar motores con versión fijada (FFmpeg, Pandoc)
-   RUN dotnet publish src/Filee.Cli -c Release -r linux-x64 --self-contained false -o /cli
-   # rhwp + 7-Zip (motores empaquetados) junto al ejecutable: EngineEnvironment.FindBundled los encuentra en ./engines
-   RUN pwsh build/fetch-portable-engines.ps1 -Runtime linux-x64 -Destination /app/engines
+2. **[Dockerfile](../Dockerfile)** (multi-stage, `linux/amd64`):
+   - **build** (`dotnet/sdk:10.0`): restaura solo con los `.csproj` (capa cacheable), publica `Filee.Web` en `/app`, baja **rhwp + 7-Zip** con `fetch-portable-engines.ps1` (necesita `xz-utils`) a `/app/engines`, y con `filee-cli engines install` instala los motores de `ARG ENGINES` (por defecto `ffmpeg pandoc`; versiones y SHA-256 de `engines.json`) que se mueven también a `/app/engines`, donde `EngineEnvironment.FindBundled` los busca primero.
+   - **runtime** (`dotnet/aspnet:10.0`, Ubuntu 24.04): fuentes Noto (incl. CJK) + fontconfig, `curl`, y por `apt` según build args: `WITH_GHOSTSCRIPT=true`, `WITH_LIBREOFFICE=false`, `WITH_TESSERACT=false` (se detectan en el `PATH`).
+   - Usuario `app` (UID 1654), puerto 8080, `FILEE_DATA_DIR=/data`, `XDG_CACHE_HOME=/data/cache` (carpetas de trabajo de Filee), `HOME=/tmp/home`. `HEALTHCHECK` contra `/api/health`.
+   - Tamaño: **~1,3 GB** con FFmpeg + Pandoc + Ghostscript (FFmpeg ~270 MB, Pandoc ~200 MB y las fuentes CJK son lo más pesado). Con `--build-arg ENGINES=""` baja bastante; con LibreOffice sube ~600 MB.
 
-   # ---------- runtime ----------
-   FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
-   ARG WITH_LIBREOFFICE=true
-   ARG WITH_GHOSTSCRIPT=true
-   ARG WITH_TESSERACT=false
-   RUN apt-get update && apt-get install -y --no-install-recommends \
-         ca-certificates libfontconfig1 libfreetype6 fonts-noto-core fonts-noto-cjk \
-       && if [ "$WITH_LIBREOFFICE" = "true" ]; then apt-get install -y --no-install-recommends \
-            libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw default-jre-headless; fi \
-       && if [ "$WITH_GHOSTSCRIPT" = "true" ]; then apt-get install -y --no-install-recommends ghostscript; fi \
-       && if [ "$WITH_TESSERACT" = "true" ]; then apt-get install -y --no-install-recommends tesseract-ocr; fi \
-       && rm -rf /var/lib/apt/lists/*
-   WORKDIR /app
-   COPY --from=build /app .
-   COPY --from=build /cli /opt/filee-cli
-   ENV ASPNETCORE_URLS=http://+:8080 \
-       FILEE_DATA_DIR=/data \
-       DOTNET_RUNNING_IN_CONTAINER=true
-   RUN mkdir -p /data && chown -R app:app /data
-   USER app
-   EXPOSE 8080
-   VOLUME /data
-   ENTRYPOINT ["dotnet", "filee-web.dll"]
-   ```
+3. **[docker-compose.yml](../docker-compose.yml)**: build args de motores, variables `FILEE_WEB_*`, volumen `filee-data:/data`, `read_only` + `tmpfs: /tmp`, `cap_drop: ALL`, `no-new-privileges`, `mem_limit: 4g`, `cpus: 2`, `pids_limit`. Publica solo en `127.0.0.1:${FILEE_PORT:-8080}`; para la red local, cambiar a `"8080:8080"` y definir `FILEE_WEB_TOKEN`.
 
-   Notas:
-   - La imagen `dotnet/sdk` ya incluye `pwsh`, así que el script de motores funciona sin instalar nada.
-   - FFmpeg/Pandoc: dos opciones —
-     a) en el `ENTRYPOINT`/primer arranque: `dotnet /opt/filee-cli/filee-cli.dll engines install ffmpeg pandoc` (descarga las versiones fijadas con SHA-256 en `engines.json` a `/data/engines`, persiste en el volumen); o
-     b) `apt-get install ffmpeg pandoc` (más simple, pero con versiones distintas a las que prueba Filee).
-     → Recomendado **a)** con un script `docker/entrypoint.sh` que instala solo si falta.
-   - LibreOffice/Ghostscript/Tesseract no tienen descarga Linux en Filee: se detectan en el `PATH` (paso 3 de la búsqueda de motores).
-   - El usuario `app` (UID 1654) existe en las imágenes de .NET 8+. Su `HOME` (`/home/app`) es donde `WorkFolders.Root` pone `~/.cache/filee` en Linux: verificar que existe y es escribible.
-   - Tamaño aproximado: ~400 MB base, ~1,2 GB con LibreOffice. Por eso los `ARG WITH_*`.
+4. **Arrancar**: `docker compose up -d --build` → **http://localhost:8080**.
 
-3. **`docker-compose.yml`**:
-
-   ```yaml
-   services:
-     filee:
-       build: .
-       image: filee-web:local
-       ports:
-         - "8080:8080"
-       volumes:
-         - filee-data:/data
-       environment:
-         FILEE_WEB_MAX_UPLOAD_MB: "500"
-         FILEE_WEB_MAX_CONCURRENT_JOBS: "2"
-         # FILEE_WEB_TOKEN: "cambia-esto"
-       mem_limit: 4g
-       read_only: true
-       tmpfs:
-         - /tmp
-       healthcheck:
-         test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
-         interval: 30s
-       restart: unless-stopped
-   volumes:
-     filee-data:
-   ```
-
-   (Con `read_only: true` hay que montar también `/home/app/.cache` como `tmpfs` o volumen. La imagen `aspnet` no trae `wget`/`curl`: instalar uno o hacer el healthcheck con un pequeño `--health` en la propia app.)
-
-4. **Arrancar y probar**:
-   `docker compose up --build` → abrir **http://localhost:8080**.
+   Verificado con la imagen final y el compose endurecido: contenedor `healthy`, proceso como `app` sin capabilities, `/app` de solo lectura y todo lo escrito en `/data`. Conversiones probadas: PNG → AVIF/WEBP, Markdown → DOCX/HWPX/ODT (Pandoc), DOCX/HWPX/XLSX → PDF (rhwp; fuentes y acentos correctos), CSV → XLSX, ZIP → 7Z, MP4 → MP3/GIF (FFmpeg), EPS → PDF/PNG (Ghostscript).
 
 ### Fase 4 — Seguridad y robustez (1 día)
 
@@ -265,7 +199,7 @@ Filee.slnx                         (modificado: + Filee.Web, + Filee.Web.Tests)
 Dockerfile                         (nuevo)
 .dockerignore                      (nuevo)
 docker-compose.yml                 (nuevo)
-docker/entrypoint.sh               (nuevo: instala FFmpeg/Pandoc la 1ª vez y arranca filee-web)
+src/Filee.Web/appsettings.json     (nuevo: logs de ASP.NET en Warning)
 src/Filee.Web/Filee.Web.csproj     (nuevo)
 src/Filee.Web/Program.cs           (nuevo: DI, límites, endpoints, static files)
 src/Filee.Web/WebConversionHost.cs (nuevo: adaptado de CliHost)

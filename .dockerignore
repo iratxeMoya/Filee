@@ -1,0 +1,19 @@
+# Only what the web image builds from: src/, the shared MSBuild files and the engine scripts.
+**/bin/
+**/obj/
+.git/
+.github/
+.vs/
+.vscode/
+build/.cache/
+engines/
+docs/
+installer/
+skills/
+tests/
+**/TestResults/
+*.md
+!THIRD-PARTY-NOTICES.md
+Dockerfile
+docker-compose*.yml
+.dockerignore
