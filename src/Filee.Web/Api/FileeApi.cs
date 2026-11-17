@@ -21,7 +21,14 @@ internal static class FileeApi
     {
         var api = app.MapGroup("/api");
 
-        api.MapGet("/health", () => Results.Ok(new { status = "ok", version = typeof(FileeApi).Assembly.GetName().Version?.ToString(3) }));
+        // Open even with a token (Docker's health check); the limits are what the page tells before an upload.
+        api.MapGet("/health", (WebOptions options) => Results.Ok(new
+        {
+            status = "ok",
+            version = typeof(FileeApi).Assembly.GetName().Version?.ToString(3),
+            maxFiles = options.MaxFilesPerJob,
+            maxUploadMb = options.MaxUploadBytes / (1024 * 1024),
+        }));
 
         api.MapGet("/formats", () => Results.Ok(FormatRegistry.Known
             .Where(f => f.Id != FormatRegistry.Folder)

@@ -20,8 +20,10 @@
     <EmbeddedResource Include="..\Filee.App\Assets\i18n\en.json" LogicalName="Filee.Web.en.json" />
   </ItemGroup>
 
-  <!-- The Filee logo for the page, from the app's icons. -->
+  <!-- The page next to the program in a plain build too (ContentRoot is the program's folder, see Program.cs), not
+       only in a publish; and the Filee logo for it, from the app's icons. -->
   <ItemGroup>
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\Filee.App\Assets\Icons\filee.png" Link="wwwroot\filee.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
