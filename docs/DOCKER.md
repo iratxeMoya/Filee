@@ -151,7 +151,11 @@ dotnet test tests/Filee.Web.Tests
 -Destination engines` fills `engines/` for the bundled engines; other engines are found on the `PATH`.
 
 The code: [src/Filee.Web](../src/Filee.Web) (`WebConversionHost` sets up the pipeline like the CLI's `CliHost`,
-`JobStore` keeps the conversions, `Api/FileeApi.cs` is the API, `wwwroot` the page). The
-[Docker workflow](../.github/workflows/docker.yml) runs the tests, builds the image, starts it and converts a few files
-through the API on every change that can affect it. Publishing to `ghcr.io/<owner>/filee-web` is opt-in: set the
+`JobStore` keeps the conversions, `Api/FileeApi.cs` is the API, `wwwroot` the page).
+[Filee.Web.slnf](../Filee.Web.slnf) holds only the projects behind the web app and their tests
+(`dotnet build Filee.Web.slnf`), without the desktop app.
+
+CI: [ci.yml](../.github/workflows/ci.yml) builds `Filee.Web.slnf` on Linux, checks the formatting and runs its tests
+(with rhwp, 7-Zip and FFmpeg for the engine tests). [docker.yml](../.github/workflows/docker.yml) builds the image,
+starts it and converts a few files through the API on every change that can affect it. Publishing to `ghcr.io/<owner>/filee-web` is opt-in: set the
 repository variable `FILEE_WEB_PUBLISH` to `true`; pushes to `main` publish `edge` and `web-v1.2.3` tags publish `1.2.3`.

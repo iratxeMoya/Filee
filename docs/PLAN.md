@@ -179,13 +179,13 @@ El contenedor procesa archivos arbitrarios con motores complejos (LibreOffice, G
 > ✅ **Hecho** (rama `feat/web-docker`).
 
 - [x] [.github/workflows/docker.yml](../.github/workflows/docker.yml): en cada PR que toque la web, el Dockerfile o el núcleo (filtro por rutas), en `main`, en tags `web-v*` y a mano, hace lo siguiente:
-  1. Ejecuta `Filee.Web.Tests`.
-  2. Construye la imagen con caché de GitHub Actions.
-  3. La arranca con las mismas restricciones que el compose (solo lectura, `cap_drop ALL`).
-  4. Comprueba que estén los motores (`magick`, `rhwp`, `archive`, `ffmpeg`, `pandoc`, `ghostscript`).
-  5. Convierte PNG → JPG, Markdown → PDF y Markdown → DOCX por la API, comprobando los primeros bytes de cada resultado.
+  1. Construye la imagen con caché de GitHub Actions.
+  2. La arranca con las mismas restricciones que el compose (solo lectura, `cap_drop ALL`).
+  3. Comprueba que estén los motores (`magick`, `rhwp`, `archive`, `ffmpeg`, `pandoc`, `ghostscript`).
+  4. Convierte PNG → JPG, Markdown → PDF y Markdown → DOCX por la API, comprobando los primeros bytes de cada resultado.
 
-  **Publicar en GHCR es opcional**: solo con la variable de repositorio `FILEE_WEB_PUBLISH=true` (`main` → `edge`, `web-v1.2.3` → `1.2.3`), porque `origin` es el repo original y no un fork. Validado con `actionlint` y ejecutando sus pasos de arranque y conversión en local contra la imagen.
+  **Publicar en GHCR es opcional**: solo con la variable de repositorio `FILEE_WEB_PUBLISH=true` (`main` → `edge`, `web-v1.2.3` → `1.2.3`). Validado con `actionlint` y ejecutando sus pasos de arranque y conversión en local contra la imagen.
+- [x] **CI centrado en la web** (en el fork `iratxeMoya/Filee`): [ci.yml](../.github/workflows/ci.yml) pasa a un solo job en Linux que restaura, comprueba el formato, compila y testea [Filee.Web.slnf](../Filee.Web.slnf) (Core, Engines, CLI, Web y sus tests; sin la app de escritorio), con rhwp, 7-Zip y FFmpeg para los tests de motores. Se eliminan los workflows de escritorio y publicación (`portable`, `release`, `magick-native-macos`, `windows-arm64-native`) y los bots de issues/PRs (`label-issue`, `label-pr` + `labeler.yml`, `flag-duplicate-issue`).
 - [x] [docs/DOCKER.md](DOCKER.md) (en inglés, como el resto de `docs/`): inicio rápido, motores y build args, variables de entorno, datos y volumen, seguridad (token, proxy inverso, licencias GPL/AGPL), API con ejemplo `curl`, desarrollo sin Docker.
 - [x] Sección "In a browser (Docker)" en el [README](../README.md) enlazando a `docs/DOCKER.md` (solo en el README en inglés; las traducciones de `docs/readme/` no se han tocado).
 
