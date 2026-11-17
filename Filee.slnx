@@ -8,6 +8,7 @@
     <Project Path="src/Filee.App/Filee.App.csproj" />
     <Project Path="src/Filee.Cli/Filee.Cli.csproj" />
     <Project Path="src/Filee.Setup/Filee.Setup.csproj" />
+    <Project Path="src/Filee.Web/Filee.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Filee.Core.Tests/Filee.Core.Tests.csproj" />
@@ -16,6 +17,7 @@
     <Project Path="tests/Filee.Cli.Tests/Filee.Cli.Tests.csproj" />
     <Project Path="tests/Filee.Platform.Tests/Filee.Platform.Tests.csproj" />
     <Project Path="tests/Filee.Setup.Tests/Filee.Setup.Tests.csproj" />
+    <Project Path="tests/Filee.Web.Tests/Filee.Web.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />

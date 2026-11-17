@@ -203,6 +203,16 @@ filee watch D:\Inbox --to pdf --move-originals
 
 Every command and option: [filee.sh/cli](https://filee.sh/cli/) or `filee help`.
 
+## In a browser (Docker)
+
+The same conversions on a server, with a web page to drop files on and download the results:
+
+```bash
+docker compose up -d --build    # then open http://localhost:27115
+```
+
+Engines, settings, security and the API: [docs/DOCKER.md](docs/DOCKER.md).
+
 ## Development
 
 Build with the .NET 10 SDK on Windows, macOS or Linux:

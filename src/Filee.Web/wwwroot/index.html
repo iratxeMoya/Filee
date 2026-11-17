@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Filee</title>
+  <link rel="icon" type="image/png" href="filee.png">
+  <link rel="stylesheet" href="app.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <img src="filee.png" alt="" width="36" height="36">
+        <div>
+          <h1>Filee</h1>
+          <p class="tagline" data-i18n="tagline">Drag. Drop. Converted.</p>
+        </div>
+      </div>
+      <button type="button" class="link" id="engines-toggle" data-i18n="engines">Engines</button>
+    </header>
+
+    <section class="card hidden" id="engines-card" aria-labelledby="engines-title">
+      <h2 id="engines-title" data-i18n="engines">Engines</h2>
+      <ul class="engines" id="engines-list"></ul>
+    </section>
+
+    <section class="card">
+      <label class="dropzone" id="dropzone" for="file-input">
+        <input type="file" id="file-input" multiple>
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="40" height="40"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <strong data-i18n="drop">Drop files here</strong>
+        <span data-i18n="choose">or click to choose them</span>
+        <small id="limit-note"></small>
+      </label>
+
+      <div class="selection hidden" id="selection">
+        <div class="selection-head">
+          <h2><span id="selection-count"></span></h2>
+          <button type="button" class="link" id="clear" data-i18n="clear">Clear</button>
+        </div>
+        <ul class="files" id="file-list"></ul>
+        <p class="note warn hidden" id="unknown-note"></p>
+      </div>
+    </section>
+
+    <section class="card hidden" id="formats-card" aria-labelledby="formats-title">
+      <div class="formats-head">
+        <h2 id="formats-title" data-i18n="convertTo">Convert to</h2>
+        <input type="search" id="format-filter" data-i18n-placeholder="filter" placeholder="Filter formats" autocomplete="off">
+      </div>
+      <p class="note" id="formats-loading" data-i18n="loading">Looking for formats…</p>
+      <div id="format-groups"></div>
+      <p class="note hidden" id="no-formats" data-i18n="noFormats">These files have no format in common to convert to.</p>
+      <details class="more hidden" id="more-formats">
+        <summary data-i18n="withEngines">More with optional engines</summary>
+        <div id="engine-groups"></div>
+      </details>
+
+      <div class="actions">
+        <label class="quality hidden" id="quality-row">
+          <span data-i18n="quality">Quality</span>
+          <input type="range" id="quality" min="1" max="100" value="90">
+          <output id="quality-value">90</output>
+        </label>
+        <button type="button" class="primary" id="convert" disabled></button>
+      </div>
+    </section>
+
+    <section id="jobs" aria-live="polite"></section>
+
+    <footer class="footer">
+      <span data-i18n="privacy">Files are converted on this server and deleted after a while.</span>
+      <a href="https://github.com/KnifeLemon/Filee" rel="noopener" target="_blank">GitHub</a>
+    </footer>
+  </div>
+
+  <div class="drag-overlay hidden" id="drag-overlay"><span data-i18n="dropAnywhere">Drop to add files</span></div>
+
+  <dialog id="token-dialog">
+    <form method="dialog" id="token-form">
+      <h2 data-i18n="tokenTitle">Access token</h2>
+      <p data-i18n="tokenText">This server needs an access token.</p>
+      <input type="password" id="token-input" autocomplete="current-password" required>
+      <menu>
+        <button type="submit" class="primary" data-i18n="save">Save</button>
+      </menu>
+    </form>
+  </dialog>
+</body>
+</html>

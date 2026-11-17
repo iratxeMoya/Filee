@@ -1,0 +1,33 @@
+<!--
+  Filee.Web: Filee in a web browser. An ASP.NET Core server with the same conversion pipeline as the command line
+  (Filee.Core + Filee.Engines, see WebConversionHost) and a static page (wwwroot) to upload files, pick a format and
+  download the results. Meant to run in a Linux container (see docs/PLAN.md).
+-->
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>filee-web</AssemblyName>
+    <RootNamespace>Filee.Web</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Filee.Core\Filee.Core.csproj" />
+    <ProjectReference Include="..\Filee.Engines\Filee.Engines.csproj" />
+  </ItemGroup>
+
+  <!-- Error messages and format names, in English (the app's translation file), as the command line does. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\Filee.App\Assets\i18n\en.json" LogicalName="Filee.Web.en.json" />
+  </ItemGroup>
+
+  <!-- The page next to the program in a plain build too (ContentRoot is the program's folder, see Program.cs), not
+       only in a publish; and the Filee logo for it, from the app's icons. -->
+  <ItemGroup>
+    <Content Update="wwwroot\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\Filee.App\Assets\Icons\filee.png" Link="wwwroot\filee.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Filee.Web.Tests" />
+  </ItemGroup>
+</Project>

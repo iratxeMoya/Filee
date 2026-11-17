@@ -71,5 +71,7 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
     <!-- Tests only: validates generated DOCX files against the Office Open XML schemas. -->
     <PackageVersion Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <!-- Tests only: runs Filee.Web in memory (WebApplicationFactory). -->
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
   </ItemGroup>
 </Project>

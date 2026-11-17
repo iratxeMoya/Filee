@@ -1,0 +1,139 @@
+# The web image (Dockerfile, src/Filee.Web): build it, start it and convert a few files through its API on every change
+# that can affect it. Publishing to GitHub Container Registry is opt-in: set the repository variable
+# FILEE_WEB_PUBLISH to "true", and pushes to main (tag "edge") and "web-v*" tags (tag = version) are pushed as
+# ghcr.io/<owner>/filee-web. See docs/DOCKER.md.
+name: Docker
+
+on:
+  push:
+    branches: [main]
+    tags: ["web-v*"]
+  pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - docker-compose.yml
+      - Directory.Build.props
+      - Directory.Packages.props
+      - global.json
+      - build/fetch-portable-engines.ps1
+      - src/Filee.Core/**
+      - src/Filee.Engines/**
+      - src/Filee.Cli/**
+      - src/Filee.Web/**
+      - src/Filee.App/Assets/i18n/en.json
+      - tests/Filee.Web.Tests/**
+      - .github/workflows/docker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE: filee-web:ci
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Web tests
+        run: dotnet test tests/Filee.Web.Tests -c Release --logger "console;verbosity=normal"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha,scope=filee-web
+          cache-to: type=gha,scope=filee-web,mode=max
+
+      - name: Start the container
+        run: |
+          docker run -d --name filee -p 27115:8080 --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges:true -v filee-data:/data "$IMAGE"
+          for _ in $(seq 1 60); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' filee)
+            [ "$status" = healthy ] && exit 0
+            sleep 2
+          done
+          docker logs filee
+          echo "The container did not become healthy (last status: $status)"
+          exit 1
+
+      - name: Convert through the API
+        run: |
+          set -euo pipefail
+          base=http://127.0.0.1:27115
+
+          engines=$(curl -fsS "$base/api/engines")
+          for engine in magick rhwp archive ffmpeg pandoc ghostscript; do
+            echo "$engines" | jq -e --arg id "$engine" '.[] | select(.id == $id) | .available' > /dev/null \
+              || { echo "Engine $engine is not available in the image"; echo "$engines" | jq .; exit 1; }
+          done
+
+          printf '# Filee\n\nTexto con acentos: áéíóú ñ\n' > sample.md
+          convert() {  # convert <file> <target> <expected first bytes, hex>
+            id=$(curl -fsS -F "files=@$1" -F "to=$2" "$base/api/jobs" | jq -r .id)
+            for _ in $(seq 1 120); do
+              job=$(curl -fsS "$base/api/jobs/$id")
+              [ "$(echo "$job" | jq -r .finished)" = true ] && break
+              sleep 0.5
+            done
+            echo "$job" | jq -c '{state, files: [.files[] | {name, state, error}]}'
+            [ "$(echo "$job" | jq -r .state)" = completed ] || exit 1
+            curl -fsS -o result.bin "$base/api/jobs/$id/results/0"
+            magic=$(head -c 4 result.bin | od -An -tx1 | tr -d ' \n')
+            [ "${magic:0:${#3}}" = "$3" ] || { echo "$1 -> $2: unexpected bytes $magic"; exit 1; }
+          }
+          convert docs/media/page-home-en.png jpg ffd8ff     # ImageMagick
+          convert sample.md pdf 25504446                     # HWPX writer + rhwp
+          convert sample.md docx 504b0304                    # DOCX writer
+
+      - name: Container log
+        if: always()
+        run: docker logs filee 2>&1 | tail -n 100 || true
+
+      - name: Image metadata
+        id: meta
+        if: github.event_name != 'pull_request' && vars.FILEE_WEB_PUBLISH == 'true'
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/filee-web
+          tags: |
+            type=edge,branch=main
+            type=match,pattern=web-v(.*),group=1
+
+      - uses: docker/login-action@v3
+        if: steps.meta.outcome == 'success'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish
+        if: steps.meta.outcome == 'success'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=filee-web
