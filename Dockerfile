@@ -3,7 +3,7 @@
 # Filee in a browser: the Filee.Web server (src/Filee.Web) with Filee's engines, for linux/amd64.
 #
 #   docker build -t filee-web .
-#   docker run -p 8080:8080 -v filee-data:/data filee-web        → http://localhost:8080
+#   docker run -p 27115:8080 -v filee-data:/data filee-web       → http://localhost:27115
 #
 # Build arguments (engines beyond the built-in ones; see docs/ENGINES.md):
 #   ENGINES           Filee's pinned downloads to put in the image, checked against engines.json's SHA-256:

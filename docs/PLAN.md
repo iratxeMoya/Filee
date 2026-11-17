@@ -140,9 +140,9 @@ Principios:
    - Usuario `app` (UID 1654), puerto 8080, `FILEE_DATA_DIR=/data`, `XDG_CACHE_HOME=/data/cache` (carpetas de trabajo de Filee), `HOME=/tmp/home`. `HEALTHCHECK` contra `/api/health`.
    - Tamaño: **~1,3 GB** con FFmpeg + Pandoc + Ghostscript (FFmpeg ~270 MB, Pandoc ~200 MB y las fuentes CJK son lo más pesado). Con `--build-arg ENGINES=""` baja bastante; con LibreOffice sube ~600 MB.
 
-3. **[docker-compose.yml](../docker-compose.yml)**: build args de motores, variables `FILEE_WEB_*`, volumen `filee-data:/data`, `read_only` + `tmpfs: /tmp`, `cap_drop: ALL`, `no-new-privileges`, `mem_limit: 4g`, `cpus: 2`, `pids_limit`. Publica solo en `127.0.0.1:${FILEE_PORT:-8080}`; para la red local, cambiar a `"8080:8080"` y definir `FILEE_WEB_TOKEN`.
+3. **[docker-compose.yml](../docker-compose.yml)**: build args de motores, variables `FILEE_WEB_*`, volumen `filee-data:/data`, `read_only` + `tmpfs: /tmp`, `cap_drop: ALL`, `no-new-privileges`, `mem_limit: 4g`, `cpus: 2`, `pids_limit`. Publica solo en `127.0.0.1:${FILEE_PORT:-27115}` (puerto 8080 dentro del contenedor); para la red local, cambiar a `"27115:8080"` y definir `FILEE_WEB_TOKEN`.
 
-4. **Arrancar**: `docker compose up -d --build` → **http://localhost:8080**.
+4. **Arrancar**: `docker compose up -d --build` → **http://localhost:27115**.
 
    Verificado con la imagen final y el compose endurecido: contenedor `healthy`, proceso como `app` sin capabilities, `/app` de solo lectura y todo lo escrito en `/data`. Conversiones probadas: PNG → AVIF/WEBP, Markdown → DOCX/HWPX/ODT (Pandoc), DOCX/HWPX/XLSX → PDF (rhwp; fuentes y acentos correctos), CSV → XLSX, ZIP → 7Z, MP4 → MP3/GIF (FFmpeg), EPS → PDF/PNG (Ghostscript).
 

@@ -1,4 +1,4 @@
-# Filee in a browser: docker compose up -d --build  →  http://localhost:8080
+# Filee in a browser: docker compose up -d --build  →  http://localhost:27115
 # Settings are environment variables (FILEE_WEB_*, see src/Filee.Web/WebOptions.cs); engines are build arguments
 # (see the Dockerfile).
 
@@ -13,8 +13,9 @@ services:
         WITH_TESSERACT: "false"
     image: filee-web:local
     ports:
-      # Only this computer by default; use "8080:8080" to reach it from the local network (and set FILEE_WEB_TOKEN).
-      - "127.0.0.1:${FILEE_PORT:-8080}:8080"
+      # Host port 27115 (FILEE_PORT to change it) → 8080 in the container. Only this computer by default; use
+      # "27115:8080" to reach it from the local network (and set FILEE_WEB_TOKEN).
+      - "127.0.0.1:${FILEE_PORT:-27115}:8080"
     environment:
       FILEE_WEB_MAX_UPLOAD_MB: "500"
       FILEE_WEB_MAX_FILES: "50"
