@@ -17,6 +17,7 @@
     <Project Path="tests/Filee.Cli.Tests/Filee.Cli.Tests.csproj" />
     <Project Path="tests/Filee.Platform.Tests/Filee.Platform.Tests.csproj" />
     <Project Path="tests/Filee.Setup.Tests/Filee.Setup.Tests.csproj" />
+    <Project Path="tests/Filee.Web.Tests/Filee.Web.Tests.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="Directory.Build.props" />

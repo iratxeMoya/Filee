@@ -161,28 +161,18 @@ El contenedor procesa archivos arbitrarios con motores complejos (LibreOffice, G
 
 ### Fase 5 — Tests y verificación (1 día)
 
-- [ ] `tests/Filee.Web.Tests` con `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory`), añadido a `Filee.slnx`:
-  - `GET /api/health` → 200
-  - `GET /api/formats?ext=png` contiene `jpg`, `webp`, `pdf`
-  - `POST /api/jobs` con un PNG pequeño → `to=jpg` → estado `Done` → la descarga empieza por `FF D8 FF`
-  - Subida por encima del límite → 413
-  - `GET /api/jobs/{id}/files/..%2F..%2Fetc%2Fpasswd` → 404/400
-- [ ] Prueba manual en el contenedor con un set de muestra:
+> ✅ **Hecho** (rama `feat/web-docker`): 54 tests, todos en verde (`dotnet test tests/Filee.Web.Tests`). Usan solo motores integrados, así que pasan sin Docker y en el CI de Windows y Linux. Para que cada test inyecte sus propias opciones, `Program.cs` lee `WebOptions` desde la inyección de dependencias (también los límites de Kestrel y de formularios).
 
-  | Conversión | Motor | Esperado |
-  |---|---|---|
-  | HEIC → JPG, PNG → WEBP | Magick (integrado) | ✅ |
-  | Varias imágenes → un PDF | PDFsharp | ✅ |
-  | PDF → PNG / DOCX / TXT | PDFium, DOCX writer, PdfPig | ✅ |
-  | DOCX / XLSX → PDF | HWPX writer + rhwp | ✅ (revisar fuentes) |
-  | HWP → PDF | rhwp | ✅ |
-  | ZIP → 7Z | 7-Zip | ✅ |
-  | MP4 → MP3 | FFmpeg | ✅ si está instalado |
-  | DOC / PPT → PDF | LibreOffice | ✅ si `WITH_LIBREOFFICE=true` |
-  | EPS → PDF | Ghostscript | ✅ si `WITH_GHOSTSCRIPT=true` |
-  | JXR, EMF→PNG | WIC/GDI (solo Windows) | ❌ esperado, debe salir deshabilitado |
-
-- [ ] Verificar fuentes: los PDF generados por rhwp con texto CJK/latino extendido se ven bien (si no, revisar dónde busca fuentes rhwp y montar `fonts-noto-*` o las fuentes de `build/fetch-fonts.ps1`).
+- [x] [tests/Filee.Web.Tests](../tests/Filee.Web.Tests) con `Microsoft.AspNetCore.Mvc.Testing` (`WebApplicationFactory`), añadido a `Filee.slnx`:
+  - API: health (con límites), formatos, destinos (uno y varios formatos, alias de extensión, desconocidas, sin `ext` → 400), motores.
+  - Trabajos: PNG → JPG con descarga (`FF D8 FF`, `attachment`), varios archivos → ZIP, nombres repetidos, nombre con `../` que no sale de la carpeta del trabajo, archivo roto con error (sin rutas del servidor), índices de resultado fuera de rango → 404, trabajo desconocido → 404, borrar trabajo y su carpeta.
+  - Validación: formato desconocido o de solo lectura, sin archivos, demasiados archivos, calidad fuera de rango, cuerpo JSON → 400; subida por encima del límite → 413.
+  - Caducidad de trabajos y limpieza de carpetas sobrantes al arrancar.
+  - Token: sin token, token incorrecto o esquema distinto → 401; `Bearer` y cookie → 200; health y página siguen abiertos.
+  - Página y estáticos servidos; cabeceras de seguridad (CSP sin `unsafe-inline`).
+  - `UploadNames`: saneado de nombres y numeración de repetidos.
+- [x] Prueba manual en el contenedor (ver Fase 3): PNG → JPG/AVIF/WEBP (Magick), Markdown → DOCX/HWPX/ODT (Pandoc), DOCX/HWPX/XLSX → PDF (rhwp), CSV → XLSX, ZIP → 7Z (7-Zip), MP4 → MP3/GIF (FFmpeg), EPS → PDF/PNG (Ghostscript); el límite de 500 MB devuelve 413 con el Kestrel real. **Sin probar** (no había muestras o el motor no está en la imagen por defecto): HEIC, HWP binario, PDF → DOCX, LibreOffice.
+- [x] Fuentes: PDF de rhwp con acentos y `ñ` correctos (fuentes Noto). **CJK sin comprobar a ojo** (las fuentes `fonts-noto-cjk` están instaladas).
 
 ### Fase 6 — CI y documentación (½ día)
 

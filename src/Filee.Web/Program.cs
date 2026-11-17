@@ -1,5 +1,5 @@
 // Entry point of filee-web: Filee's conversions behind an HTTP API (/api, see Api/FileeApi.cs) and the page in
-// wwwroot that uses it. Configured by environment variables (WebOptions); listens where ASPNETCORE_URLS says.
+// wwwroot that uses it. Configured by environment variables (WebOptions); listens where ASPNETCORE_URLS / _HTTP_PORTS say.
 
 using System.Security.Cryptography;
 using System.Text;
@@ -8,37 +8,39 @@ using Filee.Web.Api;
 using Filee.Web.Hosting;
 using Filee.Web.Jobs;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
-var options = WebOptions.FromEnvironment();
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
     ContentRootPath = AppContext.BaseDirectory,
 });
 
-builder.WebHost.ConfigureKestrel(kestrel =>
+// The options come from the services (tests put their own there), everything else reads them from there too.
+builder.Services.AddSingleton(_ => WebOptions.FromEnvironment());
+builder.Services.AddOptions<KestrelServerOptions>().Configure<WebOptions>((kestrel, options) =>
 {
     kestrel.AddServerHeader = false;
     kestrel.Limits.MaxRequestBodySize = options.MaxUploadBytes;
 });
-builder.Services.Configure<FormOptions>(form =>
+builder.Services.AddOptions<FormOptions>().Configure<WebOptions>((form, options) =>
 {
     form.MultipartBodyLengthLimit = options.MaxUploadBytes;
     form.ValueCountLimit = options.MaxFilesPerJob + 16;
 });
-builder.Services.AddSingleton(options);
-builder.Services.AddSingleton(services => WebConversionHost.Create(options.DataDirectory, services.GetRequiredService<ILoggerFactory>()));
+builder.Services.AddSingleton(services =>
+    WebConversionHost.Create(services.GetRequiredService<WebOptions>().DataDirectory, services.GetRequiredService<ILoggerFactory>()));
 builder.Services.AddSingleton<JobStore>();
 builder.Services.AddHostedService<JobCleanupService>();
 
 var app = builder.Build();
-var log = app.Services.GetRequiredService<ILogger<Program>>();
-log.LogInformation("Filee data folder: {Data}; jobs: {Jobs}; upload limit: {Limit} MB; access token: {Token}",
+var options = app.Services.GetRequiredService<WebOptions>();
+app.Services.GetRequiredService<ILogger<Program>>().LogInformation(
+    "Filee data folder: {Data}; jobs: {Jobs}; upload limit: {Limit} MB; access token: {Token}",
     options.DataDirectory, options.JobsDirectory, options.MaxUploadBytes / (1024 * 1024), options.Token is null ? "off" : "on");
 
 // Check every engine once at start (some run a program to read its version), not on the first request.
-var host = app.Services.GetRequiredService<WebConversionHost>();
-_ = host.Catalog.CheckInBackgroundAsync();
+_ = app.Services.GetRequiredService<WebConversionHost>().Catalog.CheckInBackgroundAsync();
 
 app.Use(async (context, next) =>
 {
