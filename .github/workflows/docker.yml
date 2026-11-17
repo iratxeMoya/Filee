@@ -22,7 +22,6 @@ on:
       - src/Filee.Cli/**
       - src/Filee.Web/**
       - src/Filee.App/Assets/i18n/en.json
-      - tests/Filee.Web.Tests/**
       - .github/workflows/docker.yml
   workflow_dispatch:
 
@@ -45,13 +44,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: global.json
-
-      - name: Web tests
-        run: dotnet test tests/Filee.Web.Tests -c Release --logger "console;verbosity=normal"
-
+      # The tests (Filee.Web.Tests among them) run in ci.yml; this job is about the image.
       - uses: docker/setup-buildx-action@v3
 
       - name: Build the image

@@ -1,0 +1,18 @@
+{
+  "solution": {
+    "path": "Filee.slnx",
+    "projects": [
+      "src/Filee.Core/Filee.Core.csproj",
+      "src/Filee.Engines/Filee.Engines.csproj",
+      "src/Filee.Platform.Windows/Filee.Platform.Windows.csproj",
+      "src/Filee.Platform.Linux/Filee.Platform.Linux.csproj",
+      "src/Filee.Platform.MacOS/Filee.Platform.MacOS.csproj",
+      "src/Filee.Cli/Filee.Cli.csproj",
+      "src/Filee.Web/Filee.Web.csproj",
+      "tests/Filee.Core.Tests/Filee.Core.Tests.csproj",
+      "tests/Filee.Engines.Tests/Filee.Engines.Tests.csproj",
+      "tests/Filee.Cli.Tests/Filee.Cli.Tests.csproj",
+      "tests/Filee.Web.Tests/Filee.Web.Tests.csproj"
+    ]
+  }
+}

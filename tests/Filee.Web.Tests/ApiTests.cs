@@ -63,14 +63,19 @@ public sealed class ApiTests : IDisposable
     [Fact]
     public async Task Targets_of_several_formats_are_those_every_one_converts_to()
     {
+        // Which targets exist depends on the engines installed (with rhwp a CSV reaches pictures through PDF), so this
+        // checks the rule itself: exactly the targets each format has on its own.
         var cancellation = TestContext.Current.CancellationToken;
-        var png = await _client.GetFromJsonAsync<JsonElement>("/api/targets?ext=png", cancellation);
-        var both = await _client.GetFromJsonAsync<JsonElement>("/api/targets?ext=png&ext=csv", cancellation);
+        async Task<HashSet<string>> TargetsOf(string query) =>
+            (await _client.GetFromJsonAsync<JsonElement>($"/api/targets?{query}", cancellation))
+                .GetProperty("targets").EnumerateArray().Select(t => t.GetProperty("id").GetString()!).ToHashSet();
 
-        var pngIds = png.GetProperty("targets").EnumerateArray().Select(t => t.GetProperty("id").GetString()).ToHashSet();
-        var bothIds = both.GetProperty("targets").EnumerateArray().Select(t => t.GetProperty("id").GetString()).ToList();
-        Assert.All(bothIds, id => Assert.Contains(id, pngIds));
-        Assert.DoesNotContain("webp", bothIds); // a CSV doesn't become a picture
+        var png = await TargetsOf("ext=png");
+        var csv = await TargetsOf("ext=csv");
+        var both = await TargetsOf("ext=png&ext=csv");
+
+        Assert.NotEmpty(both);
+        Assert.Equal(png.Intersect(csv).Order(), both.Order());
     }
 
     [Fact]
